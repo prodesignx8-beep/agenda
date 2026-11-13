@@ -150,10 +150,16 @@
                     Jurnal Hari Ini
                 </h1>
             </div>
-            <button onclick="openModal()" class="bg-charcoal text-white hover:bg-black px-6 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Tambah Agenda
-            </button>
+            <div class="flex items-center gap-3">
+                <button onclick="logout()" class="bg-paper border border-edge text-charcoal hover:bg-[#E6E2D8] px-4 py-2.5 rounded-full text-sm font-medium transition-colors flex items-center gap-2" title="Keluar / Kunci Jurnal">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    <span class="hidden sm:inline">Keluar</span>
+                </button>
+                <button onclick="openModal()" class="bg-charcoal text-white hover:bg-black px-6 py-2.5 rounded-full text-sm font-medium transition-colors shadow-sm flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Tambah Agenda
+                </button>
+            </div>
         </div>
     </header>
 
@@ -327,6 +333,12 @@
             }
         }
 
+        // Fungsi Keluar (Logout) untuk mengunci kembali
+        function logout() {
+            // Memuat ulang halaman akan me-reset memori aplikasi dan memunculkan kembali layar PIN
+            window.location.reload();
+        }
+
         // Fungsi untuk menghitung Pasaran Jawa otomatis
         function getPasaran(date) {
             // Acuan: 13 November 2026 = Jumat Wage
@@ -401,8 +413,8 @@
 
             // Sort by Date, then Start Time
             dataToRender.sort((a, b) => {
-                const dateA = new Date(`${a.Tanggal}T${a.Jam_Mulai}`);
-                const dateB = new Date(`${b.Tanggal}T${b.Jam_Mulai}`);
+                const dateA = new Date(`${a.Tanggal}T${a.Jam_Mulai.substring(0,5)}`); // Safe sort ignoring full ISO string
+                const dateB = new Date(`${b.Tanggal}T${b.Jam_Mulai.substring(0,5)}`);
                 return dateA - dateB;
             });
 
@@ -410,10 +422,22 @@
                 const isDone = item.Status === 'Selesai';
                 const cardColor = categoryColors[item.Kategori] || 'bg-muted';
                 
-                // Format tanggal dilengkapi dengan nama Weton di setiap kartu
+                // Format tanggal HANYA Hari, Tanggal, dan Bulan (tanpa Weton)
                 const d = new Date(item.Tanggal);
-                const pasaranName = getPasaran(d);
-                const dateStr = `${d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} ${pasaranName}`;
+                const dateStr = d.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' });
+
+                // Fungsi pembantu untuk memformat bug 1899 dari Google Sheets menjadi HH:MM saja
+                const formatWaktu = (waktu) => {
+                    if (!waktu) return '';
+                    if (typeof waktu === 'string' && waktu.includes('T')) {
+                        const dateObj = new Date(waktu);
+                        return dateObj.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+                    }
+                    return waktu; // Jika sudah format "09:00" kembalikan aslinya
+                };
+
+                const jamMulai = formatWaktu(item.Jam_Mulai);
+                const jamSelesai = formatWaktu(item.Jam_Selesai);
 
                 const card = document.createElement('div');
                 card.className = `card-item relative bg-card border border-edge rounded-xl shadow-soft p-4 flex gap-4 ${isDone ? 'opacity-60 done' : ''}`;
@@ -423,10 +447,10 @@
                     <div class="absolute left-0 top-4 bottom-4 w-1 rounded-r-full ${cardColor}"></div>
                     
                     <!-- Time / Date -->
-                    <div class="flex-shrink-0 w-20 text-right pr-2 border-r border-edge flex flex-col justify-center">
-                        <span class="text-sm font-semibold text-charcoal strike-smooth ${isDone ? 'text-muted' : ''}">${item.Jam_Mulai}</span>
-                        <span class="text-xs text-muted">${item.Jam_Selesai}</span>
-                        <span class="text-[10px] text-muted font-medium uppercase mt-1 tracking-wider">${dateStr}</span>
+                    <div class="flex-shrink-0 w-24 text-right pr-3 border-r border-edge flex flex-col justify-center">
+                        <span class="text-sm font-semibold text-charcoal strike-smooth ${isDone ? 'text-muted' : ''}">${jamMulai}</span>
+                        <span class="text-xs text-muted">${jamSelesai}</span>
+                        <span class="text-[10px] text-muted font-medium uppercase mt-2 tracking-wider">${dateStr}</span>
                     </div>
 
                     <!-- Content -->
